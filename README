@@ -1,0 +1,3 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=414
+
+An Oracle PL/SQL indent file that indents after BEGIN IF AS IS THEN WHEN LOOP ELSE ELSIF CASE EXCEPTION and DECLARE, and unindents after the corresponding end of these statements/sections.
