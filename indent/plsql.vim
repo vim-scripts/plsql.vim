@@ -2,9 +2,14 @@
 " Language:	PL/SQL
 " Author:	Geoff Evans
 " Maintainer:	Bill Pribyl <bill@plnet.org>
-" Last Change:	Mon June 10 09:27:43 CDT 2002
+" Last Change:	Tue Sep 17 13:31:00 CDT 2002
 " URL:		http://plnet.org/files/vim/
-" $Id: plsql.vim,v 1.1 2002/09/12 16:13:00 root Exp $
+" $Id: plsql.vim,v 1.2 2002/09/17 17:36:24 root Exp root $
+
+" TODO
+" 1. should not indent line following SQL statement containing 'is'
+" 2. should unindent on 'begin' when it follows inline subprograms
+"    (that is, subprograms implemented in the decl section)
 
 
 " Only load this indent file when no other was loaded.
@@ -32,7 +37,7 @@ setlocal indentexpr=GetPlsqlIndent()
 
 " For these words, reevaluate the line's indentation
 " Tilde means ignore case
-setlocal indentkeys+==~then,=~exception,=~end,=~else,=~elsif,=~begin
+setlocal indentkeys+==~then,=~exception,=~end,=~else,=~elsif,=~begin,=~when
 
 
 " Only define the function once.
@@ -56,6 +61,8 @@ function GetPlsqlIndent()
 
   " Find a non-blank line above the current line.
   let lnum = prevnonblank(v:lnum - 1)
+  let lnumsave = lnum
+
   " Hit the start of the file, use zero indent.
   if lnum == 0
     return 0
@@ -68,7 +75,7 @@ function GetPlsqlIndent()
   " Add a 'shiftwidth' after begin, if, as, is, then, when, loop, else, 
   " elsif, exception, declare
   " Skip if the line also contains the closure for the above
-    if line =~ '\(begin\|if\|as\|is\|then\|when\|loop\|else\|elsif\|exception\|declare\)\>'
+    if line =~ '\(begin\|case\|if\|as\|is\|then\|when\|loop\|else\|elsif\|exception\|declare\)\>'
        if line !~ '\(end\)\>'
           let ind = ind + &sw
        endif
@@ -85,7 +92,7 @@ function GetPlsqlIndent()
   " Outdenting on the current line as you type it
 
   " Subtract a 'shiftwidth' on a then, exception, end, else, elsif, or ')'
-    if (cline =~ '^\s*\(then\|exception\|end\|else\|elsif\)\>' || line =~ '^\s*)')
+    if (cline =~ '^\s*\(then\|exception\|else\|elsif\|end\)\>' || line =~ '^\s*)')
        let ind = ind - &sw
     endif
 
@@ -103,7 +110,24 @@ function GetPlsqlIndent()
              break
           endif
        endwhile
-       echo cline
+    endif
+
+  " Subtract shiftwidth on a when or end iff preceded by another when with no
+  " intervening exception
+    if cline =~ '^\s*\(when\|end\)\>'
+       let lnum = lnumsave
+       let line = getline(lnum)
+       while (lnum >= 0)
+          let line = getline(lnum)
+          let lnum = lnum - 1
+          if line =~ '\(exception\|case\)\>'
+             break
+          endif
+          if line =~ '\(when\)\>'
+             let ind = ind - &sw
+             break
+          endif
+       endwhile
     endif
 
   return ind
