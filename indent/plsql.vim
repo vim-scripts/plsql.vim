@@ -1,16 +1,13 @@
 " Vim indent file
-" Language:	PL/SQL
-" Author:	Geoff Evans
-" Maintainer:	Bill Pribyl <bill@plnet.org>
-" Last Change:	Tue Sep 17 13:31:00 CDT 2002
-" URL:		http://plnet.org/files/vim/
-" $Id: plsql.vim,v 1.2 2002/09/17 17:36:24 root Exp root $
+" Language: PL/SQL
+" Author:   Geoff Evans
+" Maintainer:  Bill Pribyl <bill@plnet.org>
+" Contributors: Vikas Agnihotri
+" Last Change: Mon Sep 23 10:30:50 CDT 2002
+" URL:      http://plnet.org/files/vim/
+" $Id: plsql.vim,v 1.3.1.1 2002/09/23 15:41:46 root Exp root $
 
-" TODO
-" 1. should not indent line following SQL statement containing 'is'
-" 2. should unindent on 'begin' when it follows inline subprograms
-"    (that is, subprograms implemented in the decl section)
-
+" TODO: "END" of nested block in exception handler should unindent
 
 " Only load this indent file when no other was loaded.
 if exists("b:did_indent")
@@ -42,11 +39,10 @@ setlocal indentkeys+==~then,=~exception,=~end,=~else,=~elsif,=~begin,=~when
 
 " Only define the function once.
 if exists("*GetPlsqlIndent")
-  finish
+" finish
 endif
 
-
-function GetPlsqlIndent()
+function! GetPlsqlIndent()
 
   " Get the line to be indented
   let cline = getline(v:lnum)
@@ -75,7 +71,7 @@ function GetPlsqlIndent()
   " Add a 'shiftwidth' after begin, if, as, is, then, when, loop, else, 
   " elsif, exception, declare
   " Skip if the line also contains the closure for the above
-    if line =~ '\(begin\|case\|if\|as\|is\|then\|when\|loop\|else\|elsif\|exception\|declare\)\>'
+    if line =~ '\(begin\|case\|if\|as\|is\s*$\|then\|when\|loop\|else\|elsif\|exception\|declare\)\>'
        if line !~ '\(end\)\>'
           let ind = ind + &sw
        endif
@@ -96,24 +92,18 @@ function GetPlsqlIndent()
        let ind = ind - &sw
     endif
 
-  " Subtract a 'shiftwidth' on a begin iff preceded by an as, is, or declare
-  " with no intervening begin
+  " Subtract a 'shiftwidth' on a begin iff preceded by a *matching*
+  " as, is, or declare
+  " This seems to handle the case of inline subprograms. YMMV!
     if cline =~ '^\s*\(begin\)\>'
-       while (lnum >= 0)
-          let line = getline(lnum)
-          let lnum = lnum - 1
-          if line =~ '\(begin\)\>'
-             break
-          endif
-          if line =~ '\(as\|is\|declare\)\>'
-             let ind = ind - &sw
-             break
-          endif
-       endwhile
+      norm 0
+      if searchpair('\<declare\|is\|as\>',"",'\<begin\>',"br") > 0
+        let ind = ind - &sw
+      endif
     endif
 
-  " Subtract shiftwidth on a when or end iff preceded by another when with no
-  " intervening exception
+  " Subtract shiftwidth on a when iff preceded by another when with no
+  " interventing exception
     if cline =~ '^\s*\(when\|end\)\>'
        let lnum = lnumsave
        let line = getline(lnum)
